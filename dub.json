@@ -1,0 +1,18 @@
+{
+	"authors": [
+		"Deen O'Connor"
+	],
+	"copyright": "Copyright © 2024, Deen O'Connor",
+	"description": "Russian DPI circumvention frontend",
+	"license": "MIT",
+	"name": "diedpi",
+	"targetType": "executable",
+	"targetName": "diedpi",
+	"targetPath": "build",
+	"buildOptions": ["optimize"],
+	"sourcePaths": ["source"],
+	"mainSourceFile": "source/app.d",
+	"importPaths": ["submodules"],
+	"dflags": ["-m64"],
+	"lflags": ["/MANIFEST", "/MANIFESTUAC:level='requireAdministrator'"]
+}
