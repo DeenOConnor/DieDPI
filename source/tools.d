@@ -7,11 +7,12 @@ import std.json;
 import std.process;
 import std.stdio;
 import std.string;
+import std.typecons;
 
 // Для совсем отбитых случаев будем вызывать Application.onThreadException
 import dfl.application;
 
-import cfg : ConfigManager;
+import cfg : ConfigManager, LFLAGS;
 import network;
 import utils : printFormattedException;
 
@@ -304,7 +305,7 @@ bool startZapret() {
 }
 
 // По идее GoodbyeDPI - это должен быть "стандатный" вариант, особенно когда он наконец научится работать с UDP
-bool autosetupGoodbyeDPI(uint tries = 5) {
+bool autosetupGoodbyeDPI(uint tries = 5, void function() progressTick = { return; }) {
 	if (!verifyGoodbyeDPI()) {
 		return false;
     }
@@ -334,9 +335,13 @@ bool autosetupGoodbyeDPI(uint tries = 5) {
 	int key;
 	foreach (int i; 5..10) {
 		command[1] = "-" ~ text(i);
-		auto proc = spawnProcess(command, File("stdin.txt", "r"), File("stdout.txt", "w"), File("stderr.txt", "w"));
+		auto proc = spawnProcess(command, File("stdin.txt", "r"), File("stdout.txt", "w"), File("stderr.txt", "w"), config: Config(Config.Flags.suppressConsole));
 		//MessageBoxW(null, "GoodbyeDPI запущен\0"w.ptr, "\0"w.ptr, 0);
-		auto avg = rankConnection(tries, true);
+		auto avg = rankConnection(tries, LFLAGS.keepConsole, progressTick);
+		if (avg < 0) {
+			// Что-то косячит, валим
+			return false;
+        }
 		writefln("Trying GoodbyeDPI with -%d resulted in avg %d", i, avg);
 		if (avg < time) {
 			time = avg;
@@ -352,11 +357,11 @@ bool autosetupGoodbyeDPI(uint tries = 5) {
 	return true;
 }
 
-bool autosetupZapret(uint tries = 5) {
+bool autosetupZapret(uint tries = 5, void function() progressTick = { return; }) {
 	if (!verifyZapret()) {
 		return false;
     }
-
+	return true;
 	stopTool();
 
 	auto toolpath = dirEntries(".\\tools\\zapret", SpanMode.shallow).front.name;
@@ -370,7 +375,7 @@ bool autosetupZapret(uint tries = 5) {
 		"--dpi-desync-repeats=3",
 		"--dpi-desync-udplen-increment=12",
 		"--dpi-desync-udplen-pattern=0xF00F",
-		"--dpi-desync-fake-quic=\"" ~ toolpath ~ "\\quic_initial_www_google_com.bin\"",
+		"--dpi-desync-fake-quic=" ~ toolpath ~ "\\quic_initial_www_google_com.bin",
 		"--dpi-desync-any-protocol",
 		"--dpi-desync-autottl=2",
 		//"--dpi-desync-fake-tls=\"tls_clienthello_www_google_com.bin\"",
@@ -384,7 +389,7 @@ bool autosetupZapret(uint tries = 5) {
 			"--dpi-desync=": ["fake,split"], // По-моему не получится сюда приткнуть disorder, хотя он работает неплохо
 			"--dpi-desync-fooling=": ["badseq", "md5sig"], // Дискорд лучше всего себя чувствует с badseq, но md5sig тоже помогает
 			"--dpi-desync-cutoff=": ["d3"], // Я уже не помню почему именно 2 и 3
-			"--dpi-desync-fake-tls=" : ["", "\"" ~  toolpath ~ "\\tls_clienthello_www_google_com.bin\""] // На МТС поддельный clienthello всё только портит
+			"--dpi-desync-fake-tls=" : ["", toolpath ~ "\\tls_clienthello_www_google_com.bin"] // На МТС поддельный clienthello всё только портит
 		],
 		2: [
 			// На вырост
@@ -453,8 +458,15 @@ bool autosetupZapret(uint tries = 5) {
 			writefln("Testing zapret command:\n'%s'", join(command, " "));
 			// Теперь, когда у нас есть собранная команда, можем попытаться запустить zapret и проверить помогло ли
 			auto proc = spawnProcess(command, File("stdin.txt", "r"), File("stdout.txt", "w"), File("stderr.txt", "w"));
+			if (proc.processID < 1) {
+				return false;
+            }
 			//MessageBoxW(null, "Zapret запущен\0"w.ptr, "\0"w.ptr, 0);
-			auto avg = rankConnection(tries, true);
+			auto avg = rankConnection(tries, LFLAGS.keepConsole, progressTick);
+			if (avg < 0) {
+				// Ошибка
+				return false;
+			}
 			writefln("Test resulted in avg %d", avg);
 			if (avg < time) {
 				time = avg;
@@ -467,6 +479,7 @@ bool autosetupZapret(uint tries = 5) {
 		writefln("Best result of %d from '%s'", time, resultCommand);
 		// Обновим команду запуска, исключив путь до исполняемого файла
 		zapretDefaultCommand = resultCommand[1..$];
+		ConfigManager.setZapretCommand = resultCommand[1..$];
 	}
 
 	return true;

@@ -45,15 +45,17 @@ void main(string[] args)
 	
 	wstring mname = "DieDPI_Default_Mutex\0"w;
 	auto mres = CreateMutexW(null, TRUE, mname.ptr);
-	if (mres is null || GetLastError() == ERROR_ALREADY_EXISTS) {
-		MessageBoxW(null, "Не может быть запущено больше одного экземпляра программы!\0"w.ptr, "Ошибка!\0"w.ptr, MB_ICONERROR);
-		return;
+	debug { } else {
+		if (mres is null || GetLastError() == ERROR_ALREADY_EXISTS) {
+			MessageBoxW(null, "Не может быть запущено больше одного экземпляра программы!\0"w.ptr, "Ошибка!\0"w.ptr, MB_ICONERROR);
+			return;
+		}
 	}
 
 	parseArgs(args);
 
 	debug {
-		//LFLAGS.keepConsole = true;
+		LFLAGS.keepConsole = true;
     }
 
 	if (!ConfigManager.initConfig()) {
@@ -107,10 +109,11 @@ void main(string[] args)
     }
 
 	try {
+		// Будем обновляться принудительно
+		if (updater.selfUpdateNeeded()) {
+			updater.downloadUpdate(false);
+        }
 		if (LFLAGS.updateOnly) {
-			if (updater.selfUpdateNeeded()) {
-				updater.downloadUpdate(false);
-            }
 			return;
         }
 	} catch (Throwable ex) {
@@ -137,7 +140,7 @@ void main(string[] args)
 	// Запишем конфиг, в этом месте чтобы если после его изменений программа упадёт, следующий запуск будет со старым конфигом
 	ConfigManager.writeConfig();
 
-	debug {
+	if (LFLAGS.keepConsole) {
 		cast(void) readln();
 	}
 }

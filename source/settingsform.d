@@ -3,9 +3,10 @@ module settingsform;
 // Взаимодействуем с настройками только через эти функции
 import cfg;
 import tools;
+import std.stdio : writeln, writefln;
 
 import dfl.all;
-
+import autosetupform;
 
 class SettingsForm: dfl.form.Form
 {
@@ -117,11 +118,34 @@ class SettingsForm: dfl.form.Form
         }
 
 		void button8_Clicked (Object sender, EventArgs evt) {
-			msgBox("Недоступно в этой версии"w, ""w, MsgBoxButtons.OK, MsgBoxIcon.INFORMATION);
+			msgBox(
+"Экспериментальная функция!
+Может приводить к ошибкам и работать нестабильно!
+Используйте автонастройку на свой страх и риск!"w,
+			"Внимание!"w, MsgBoxButtons.OK, MsgBoxIcon.WARNING);
+			new AutoSetupForm().show();
 		}
 
 		void button10_Clicked (Object sender, EventArgs evt) {
-			msgBox("Недоступно в этой версии"w, ""w, MsgBoxButtons.OK, MsgBoxIcon.INFORMATION);
+			auto result = msgBox(
+"Инструмент будет остановлен (если запущен) и удалён.
+Обычно в этом нет необходимости, но можно попробовать, если обход не запускается.
+После удаления инструмента, при попытке запустить обход с ним, он будет скачан заново."w,
+			"Удаление"w, MsgBoxButtons.OK_CANCEL, MsgBoxIcon.QUESTION);
+			writeln(result);
+			if (result == DialogResult.OK) {
+				try {
+					import std.conv;
+					import std.file;
+					import std.uni;
+					if (!stopTool()) {
+						throw new Exception("Could not stop tool");
+                    }
+					rmdirRecurse(".\\tools\\" ~ to!string(toLower(TOOLS.keys[ConfigManager.getGlobalConfig().tool])));
+                } catch (Exception ex) {
+					
+                }
+            }
         }
 
 		void checkBox3_Clicked (Object sender, EventArgs evt) {
@@ -136,7 +160,6 @@ class SettingsForm: dfl.form.Form
 Если вы не уверены что чётко понимаете что и зачем делаете, заблокируйте настройки до перезапуска.
 
 Вы хотите заблокировать доступ к раширенным настройкам?"w, "Внимание!"w, MsgBoxButtons.YES_NO, MsgBoxIcon.WARNING);
-				import std.stdio;
 				writefln("DialogResult %d", cast(ubyte)res);
 				if (res == DialogResult.YES || res == DialogResult.OK) {
 					// Если юзер не понял или жмакнул не глядя, снимем и заблочим галочку до перезапуска

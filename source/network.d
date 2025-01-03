@@ -208,7 +208,7 @@ void downloadAndExtract(wstring url, string path, string name) {
 }
 
 
-long rankConnection(uint tries, bool dbg = false) {
+long rankConnection(uint tries, bool dbg = false, void function() progressTick = { return; }) {
 	import std.algorithm.iteration : fold;
 	import std.stdio : stdout;
 
@@ -224,6 +224,10 @@ long rankConnection(uint tries, bool dbg = false) {
 				writefln("Testing %s", url);
 			}
 			auto t = timeConnection(url, internet, accept);
+			if (t < -1) {
+				// Есть проблема
+				return t;
+            }
 			if (t == -1) {
 				// Примем ошибку соединения за 15 секунд, т.к. нас либо футболит DPI, либо фильтр по IP
 				// Ну а если уж у пользователя реально такая задержка, то у него есть проблемы посерьёзнее
@@ -233,8 +237,11 @@ long rankConnection(uint tries, bool dbg = false) {
 			totals[i] += t;
 			details[j][i] = t;
 			stdout.flush();
+			progressTick(); // Ткнём следящего что есть прогресс
 		}
-		writeln();
+		if (dbg) {
+			writeln();
+        }
 	}
 
 	if (dbg) {
@@ -273,7 +280,7 @@ long timeConnection(wstring url, HINTERNET internet, const(wchar)*[] accept) {
 	scope(exit) InternetCloseHandle(inet);
 	if (inet is null) {
 		writefln("InternetConnectW for %s failed: 0x%08X", url, GetLastError());
-		return -1;
+		return -2;
 	}
 
 	auto req = HttpOpenRequestW(
@@ -300,7 +307,7 @@ long timeConnection(wstring url, HINTERNET internet, const(wchar)*[] accept) {
 	LARGE_INTEGER start, end;
 	if (!QueryPerformanceCounter(&start)) {
 		writefln("QueryPerformanceCounter failed: 0x%08X", GetLastError());
-		return -1;
+		return -3;
 	}
 
 	auto queryRequest = HttpSendRequestW(req, null, -1, null, 0);
@@ -313,7 +320,7 @@ long timeConnection(wstring url, HINTERNET internet, const(wchar)*[] accept) {
 
 	if (!QueryPerformanceCounter(&end)) {
 		writefln("QueryPerformanceCounter failed: 0x%08X", GetLastError());
-		return -1;
+		return -4;
 	}
 
 	if (!queryResult) {

@@ -1,14 +1,25 @@
 module mainform;
 
-import cfg;
 import std.conv : to;
+import std.stdio : writefln;
+
+import core.sys.windows.shellapi;
+import core.sys.windows.winbase;
+import core.sys.windows.windef;
+import core.sys.windows.winuser;
+
 import dfl.all;
+
+import cfg;
 static import utils;
 import settingsform;
 import tools : startTool, stopTool;
 static import updater;
 
 class MainForm: Form {
+	uint iconId = 1001;
+	NOTIFYICONDATAW nidw;
+
 	private Config c;
 
 	Bitmap active, inactive;
@@ -24,8 +35,10 @@ class MainForm: Form {
 	SettingsForm settingsForm;
 
 	// Если будет поточиться, то нужно сделать shared
-	private static bool isRunning = false; 
-	
+	static bool isRunning = false;
+
+	// Для изменения состояния кнопкой
+	private static MainForm instance;
 	
 	this() {
 		import std.file;
@@ -54,6 +67,7 @@ class MainForm: Form {
 
 		initializeMyForm();
 		settingsForm = new SettingsForm();
+		instance = this;
 	}
 	
 	
@@ -155,18 +169,61 @@ class MainForm: Form {
 		}
 
 		void mainForm_Loaded (Object sender, EventArgs evt) {
+			wchar[128] tip = 0;
+			wstring tipText = "Развернуть окно DieDPI\0"w;
+			tip[0..tipText.length] = tipText;
+			nidw.cbSize = nidw.sizeof;
+			nidw.hWnd = this.handle;
+			nidw.uID = this.iconId;
+			nidw.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_STATE;
+			nidw.uCallbackMessage = 0x9090; // Должно быть в пределах 0x8000 .. 0xBFFF
+			nidw.szTip = tip;
+			nidw.dwState = 0;
+			nidw.dwStateMask = NIS_HIDDEN;
+			void* icon = LoadIconW(null, IDI_APPLICATION);
+			if (icon is null) {
+				writefln("Last error 0x%08X", GetLastError());
+            }
+			nidw.hIcon = icon;
+			nidw.uVersion = NOTIFYICON_VERSION;
+
+			Shell_NotifyIconW(NIM_ADD, &nidw);
+			writefln("Shell version change: %x", Shell_NotifyIconW(NIM_SETVERSION, &nidw));
+
 			auto globConf = ConfigManager.getGlobalConfig();
 			if (globConf.autostart) {
 				// Проставим галочку, чтобы пользователь не путался
 				checkBox2.checked(true);
 				if(globConf.persistentState) {
 					// Если мы в автозапуске и последнее состояние было включено - включимся
-					//import std.string : format;
-					//msgBox(format!"enabled:%d visible:%d handleCreated:%d"w(button5.enabled, button5.visible, button5.isHandleCreated));
 					button5.performClick();
+
+					// TODO : При автозапуске с включённым инструментом прятать окно?
+
+					return;
                 }
 			}
 			this.focus();
+		}
+
+		void mainForm_Closing (Object sender, EventArgs evt) {
+			// Если сейчас инструмент запущен - скроемся, а не закроемся
+			// Фокус группа пыталась закрыть окно после запуска инструмента
+			// и не понимала почему обход не работает, винила программу
+			if (isRunning) {
+				this.hide();
+				if (auto cea = cast(CancelEventArgs) evt) {
+					cea.cancel = true;
+				}
+			} else {
+				Shell_NotifyIcon(NIM_DELETE, &nidw);
+            }
+		}
+
+		void mainForm_VisibleChanged (Object sender, EventArgs evt) {
+			// Покажем/скроем иконку в трее в зависимости от состояния окна
+			nidw.dwState = NIS_HIDDEN & this.visible;
+			Shell_NotifyIconW(NIM_MODIFY, &nidw);
 		}
 
 		checkBox2.click.addHandler(&checkBox2_Clicked);
@@ -174,5 +231,30 @@ class MainForm: Form {
 		button6.click.addHandler(&button6_Clicked);
 		button7.click.addHandler(&button7_Clicked);
 		this.load.addHandler(&mainForm_Loaded);
+		this.closing.addHandler(&mainForm_Closing);
+		this.visibleChanged.addHandler(&mainForm_VisibleChanged);
 	}
+
+	// Лучше вынести в DFL?
+	protected override void wndProc(ref Message m) {
+		if (m.msg == 0x9090) {
+			switch (m.lParam) {
+				case 0x202:
+				case 0x205:
+				case 0x208:
+					writefln("Tray icon clicked");
+					if (!this.visible) {
+						this.show();
+						this.focus();
+                    }
+					break;
+				default:
+			}
+        }
+		super.wndProc(m);
+    }
+
+	public static MainForm getInstance() {
+		return instance;
+    }
 }
