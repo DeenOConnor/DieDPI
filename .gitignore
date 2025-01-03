@@ -25,3 +25,8 @@ docs/
 
 # Binaries
 build/
+
+# Files from test runs
+test/
+tools/
+update/

@@ -10,9 +10,9 @@
 	"targetName": "diedpi",
 	"targetPath": "build",
 	"buildOptions": ["optimize"],
-	"sourcePaths": ["source"],
+	"sourcePaths": ["source", "dfl2/source"],
 	"mainSourceFile": "source/app.d",
-	"importPaths": ["submodules"],
+	"importPaths": [],
 	"dflags": ["-m64"],
 	"lflags": ["/MANIFEST", "/MANIFESTUAC:level='requireAdministrator'"]
 }
