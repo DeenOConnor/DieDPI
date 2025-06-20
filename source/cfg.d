@@ -31,6 +31,8 @@ struct ConfigV2 {
 	ubyte tool = 1;
 	int goodbyedpiKey = 9;
 	string[] zapretCommand = [];
+    string verURL = "";
+    string updateURL = "";
 	// TODO : Реализовать
 }
 

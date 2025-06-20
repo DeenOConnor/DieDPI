@@ -2,13 +2,17 @@ module updater;
 
 import std.conv;
 import std.file;
+import std.json;
 import std.process;
 import std.path;
 import std.stdio;
 import std.string;
 
 import network;
+import tools;
 import utils : printFormattedException;
+
+static import curl = std.net.curl;
 
 // Config уже определён в std.process, так что импортируем только нужное
 import cfg : ConfigManager, APP_VER;
@@ -56,7 +60,56 @@ del \"%~f0\""
 	spawnProcess(program: "..\\diedpi.exe", config: Config(Config.Flags.detached));
 }
 
+bool goodbyeDPIUpdateNeeded() {
+    writeln("Checking GoodbyeDPI updates");
+    if (!verifyGoodbyeDPI()) {
+        writeln("GoodbyeDPI is not installed");
+        return false;
+    }
+    
+    string installedVer = baseName(dirEntries(".\\tools\\goodbyedpi", SpanMode.shallow).front.name);
+    writeln("GoodbyeDPI installed version is " ~ installedVer);
+    string releases = getReleasesJSONCurl(TOOLS["GoodbyeDPI"w]);
+    auto responseJSON = parseJSON(releases);
+    auto latest = responseJSON[0];
+    auto ver = latest["name"].get!string;
+    writeln("GoodbyeDPI remote version is " ~ ver);
 
+    return installedVer != ver;
+}
+
+bool zapretUpdateNeeded() {
+    writeln("Checking Zapret updates");
+    if (!verifyZapret()) {
+        writeln("Zapret is not installed");
+        return false;
+    }
+    
+    string installedVer = baseName(dirEntries(".\\tools\\zapret", SpanMode.shallow).front.name);
+    writeln("Zapret installed version is " ~ installedVer);
+    string releases = getReleasesJSONCurl(TOOLS["Zapret"w]);
+    auto responseJSON = parseJSON(releases);
+    auto latest = responseJSON[0];
+    auto ver = latest["name"].get!string;
+    writeln("Zapret remote version is " ~ ver);
+
+    return installedVer != ver;
+}
+
+bool isUpdateNeeded(uint timeout = 15) {
+    try {
+        auto result = curlOpenPage(to!string(verURL), timeout);
+        writefln("Version check request finished with HTTP code %d", result.code);
+        string page = result.data;
+        if (page.length < 1 || result.code >= 400) {
+            return false;
+        }
+        return internal__checkUpdatePage(page);
+    } catch (Exception ex) {
+        printFormattedException(ex);
+        return false;
+    }
+}
 
 bool selfUpdateNeeded() {
 	import core.sys.windows.winbase;
@@ -77,7 +130,37 @@ bool selfUpdateNeeded() {
 		writefln("InternetReadFile failed: 0x%08X", GetLastError());
     }
 
+    return internal__checkUpdatePage(buf.idup);
+    /*
 	uint remoteVer = APP_VER;
+	try {
+		string sbuf = "";
+		// Почистим строку от всякого мусора, который будет вызывать ConvException
+		foreach (c; buf) {
+			if (c == '\n' || c == ' ') {
+				break;
+            }
+			sbuf ~= c;
+        }
+		//string verText = replaceAll(sbuf, ctrNotNumbers, "");
+		remoteVer = to!uint(sbuf);
+	} catch (Exception ex) {
+		printFormattedException(ex);
+    }
+	// Подразумеваем не только что версия может расти, но и что может быть откат
+	return APP_VER != remoteVer;
+    */
+}
+
+private bool internal__checkUpdatePage(string page) {
+    string buf;
+    // Если в ответ пришло что-то капец длинное, то не будем это обрабатывать полностью
+    if (page.length > 10) {
+        buf = page[0..10];
+    } else {
+        buf = page;
+    }
+    uint remoteVer = APP_VER;
 	try {
 		string sbuf = "";
 		// Почистим строку от всякого мусора, который будет вызывать ConvException
@@ -96,7 +179,7 @@ bool selfUpdateNeeded() {
 	return APP_VER != remoteVer;
 }
 
-void downloadUpdate(bool force = false) {
+bool downloadUpdate(bool force = false) {
 	import std.json;
 	import std.file;
 	import std.string;
@@ -104,7 +187,7 @@ void downloadUpdate(bool force = false) {
 	try {
 		string responseCache = getReleasesJSON(relURL);
 		if (responseCache.length < 1) {
-			return;
+			return false;
         }
 
 		import std.json;
@@ -123,7 +206,7 @@ void downloadUpdate(bool force = false) {
         }
 		if (zipUrl == ""w) {
 			writeln("Could not find update.zip in release " ~ ver);
-			return;
+			return false;
         }
 		if (!exists("update\\" ~ ver ~ ".zip")) {
 			writeln("Downloading DieDPI update");
@@ -133,7 +216,7 @@ void downloadUpdate(bool force = false) {
 				import dfl.messagebox;
 				printFormattedException(ex);
 				msgBox("Ошибка обновления!"w, "Ошибка!"w, MsgBoxButtons.OK, MsgBoxIcon.ERROR);
-				return;
+				return false;
             } finally {
 				remove("update\\" ~ ver ~ ".zip");
             }
@@ -150,8 +233,8 @@ void downloadUpdate(bool force = false) {
 	} catch (Throwable ex) {
 		// По какой-то причине, если делать запросы циклом, на 17-й раз в responseCache всё кривое
 		printFormattedException(ex);
-		return;
+		return false;
 	}
 
-	return;
+	return true;
 }

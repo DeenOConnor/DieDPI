@@ -1,13 +1,22 @@
 module network;
 
 import std.conv : to;
+import std.file;
 import std.stdio : writefln, writeln;
 import std.string;
+import std.typecons;
+
+import core.time;
 
 import core.sys.windows.winbase;
 import core.sys.windows.wininet;
 import core.sys.windows.winnt;
 
+static import curl = std.net.curl;
+
+import utils;
+
+alias CurlResult = Tuple!(ushort, "code", string, "data");
 
 // TODO : Сделать изменяемыми из раздела продвинутых настроек
 // Пока репозиторий приватный использую тестовую ссылку
@@ -48,6 +57,7 @@ wstring updHeaders;
 HINTERNET internet;
 // Надо будет посмотреть, может быть имеет смысл прикидываться браузером или вообще рандомизировать
 wstring useragent = "DieDPI-v0.0.0-WinINet\0"w;
+string useragentCurl = "DieDPI-v0.0.0-libcurl\0";
 
 import dbg : debugAuth = dbgAuthHeader;
 
@@ -120,6 +130,67 @@ void* openPage(wstring url, wstring headers) {
 	return req;
 }
 
+
+CurlResult curlOpenPage(string url, uint timeout = 15) {
+    auto headers = ["User-Agent": useragentCurl];
+    return curlOpenPage(url, headers, timeout);
+}
+
+CurlResult curlOpenPage(string url, string[string] headers, uint timeout = 15) {
+    CurlResult res;
+    
+    try {
+        writefln("Attempting to open \"%s\"", url);
+        if ("User-Agent" !in headers) {
+            headers["User-Agent"] = useragentCurl;
+        }
+        auto http = curl.HTTP(url);
+        foreach (k, v; headers) {
+            http.addRequestHeader(k, v);
+        }
+        http.method(http.Method.get);
+        http.connectTimeout(dur!"seconds"(timeout));
+        string result = "";
+        http.onReceive = delegate size_t(ubyte[] data) {
+            import std.algorithm.comparison;
+            result = to!string(data[0 .. min(data.length, 10)]);
+            return data.length;
+        };
+        http.perform();
+        res.code = http.statusLine.code;
+        res.data = result;
+    } catch (Exception ex) {
+        printFormattedException(ex);
+        
+        res.code = 999;
+        res.data = "";
+    }
+    return res;
+}
+
+string getReleasesJSONCurl(wstring url) {
+    return getReleasesJSONCurl(to!string(url));
+}
+
+string getReleasesJSONCurl(string url) {
+    writefln("Requested releases JSON from %s", url);
+    return curl.get(url).idup;
+}
+
+void downloadAndExtractCurl(string url, string path, string name) {
+    writefln("Requested download and extract %s to %s from %s", name, path, url);
+    if (!exists(path ~ "\\" ~ name ~ ".zip")) {
+		if (!exists(path)) {
+			// Создадим папку, если такой ещё нет
+			mkdirRecurse(path);
+		}
+        curl.download(url, path ~ "\\" ~ name ~ ".zip");
+    } else {
+		writeln("File exists");
+    }
+	import utils;
+	extractZip(path ~ "\\" ~ name ~ ".zip", path ~ "\\inst");
+}
 
 string getReleasesJSON(wstring url) {
 	writefln("Fetching releases from '%s'", url);

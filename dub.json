@@ -11,6 +11,7 @@
 	"targetPath": "build",
 	"buildOptions": ["optimize"],
 	"sourcePaths": ["source", "dfl2/source"],
+    "libs": ["lib/libbrotlicommon", "lib/libcurl.dll", "lib/libngtcp2_crypto_quictls", "lib/libz", "lib/libbrotlidec", "lib/libnghttp2", "lib/libpsl", "lib/libzstd", "lib/libcrypto", "lib/libnghttp3", "lib/libssh2", "lib/libcurl", "lib/libngtcp2", "lib/libssl"],
 	"mainSourceFile": "source/app.d",
 	"importPaths": [],
 	"dflags": ["-m64"],

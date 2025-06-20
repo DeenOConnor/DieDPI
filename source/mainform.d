@@ -1,7 +1,7 @@
 module mainform;
 
 import std.conv : to;
-import std.stdio : writefln;
+import std.stdio : writefln, writeln;
 
 import core.sys.windows.shellapi;
 import core.sys.windows.winbase;
@@ -14,6 +14,7 @@ import cfg;
 static import utils;
 import settingsform;
 import tools : startTool, stopTool;
+static import tools;
 static import updater;
 
 class MainForm: Form {
@@ -72,7 +73,10 @@ class MainForm: Form {
 	
 	
 	private void initializeMyForm() {
-		this.text = "DieDPI v0.0.0";
+		this.text = "DieDPI v0.1.0";
+        debug {
+            this.text = this.text ~ "-debug";
+        }
 		this.clientSize = dfl.all.Size(288, 213);
 		this.maximizeBox = false;
 		this.formBorderStyle = FormBorderStyle.FIXED_SINGLE;
@@ -91,7 +95,10 @@ class MainForm: Form {
 
 		label6 = new dfl.label.Label();
 		label6.name = "label6";
-		label6.text = "Тестовая версия!";
+        label6.text = "Work in progress!";
+        debug {
+            label6.text = "Отладочная версия!";
+        }
 		label6.textAlign = dfl.all.ContentAlignment.MIDDLE_CENTER;
 		label6.bounds = dfl.all.Rect(8, 8, 268, 23);
 		label6.parent = this;
@@ -159,12 +166,67 @@ class MainForm: Form {
         }
 
 		void button7_Clicked (Object sender, EventArgs evt) {
-			//ConfigManager.setUpdateNeeded(true);
-			if (updater.selfUpdateNeeded()) {
-				updater.downloadUpdate();
-				msgBox("Обновление загружено и будет установлено при следующем запуске"w, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.INFORMATION);
-            } else {
-				msgBox("Обновлений не обнаружено"w, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.INFORMATION);
+            button7.text = "Подождите..."w;
+            scope(exit) button7.text = "Обновить"w;
+
+            writeln("Checking for updates");
+            try {
+                //ConfigManager.setUpdateNeeded(true);
+                byte updates = 0;
+                
+                // Разобьём разные обновления, чтобы не ломать все из-за кого-то одного
+                try {
+                    updates += updater.goodbyeDPIUpdateNeeded() * 1;
+                } catch (Exception ex) {
+                    utils.printFormattedException(ex);
+                    msgBox("Неожиданная ошибка при получении обновлений GoodbyeDPI"w, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.WARNING);
+                }
+                try {
+                    updates += updater.zapretUpdateNeeded() * 2;
+                } catch (Exception ex) {
+                    utils.printFormattedException(ex);
+                    msgBox("Неожиданная ошибка при получении обновлений Zapret"w, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.WARNING);
+                }
+                try {
+                    updates += updater.selfUpdateNeeded() * 4;
+                } catch (Exception ex) {
+                    utils.printFormattedException(ex);
+                    msgBox("Неожиданная ошибка при получении собственных обновлений"w, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.WARNING);
+                }
+
+                if (updates == 0) {
+                    msgBox("Обновлений не обнаружено"w, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.INFORMATION);
+                    return;
+                }
+                
+                writefln("Updates found:\nGoodbyeDPI - %s\nZapret - %s\nSelf - %s", !!(updates & 1), !!(updates & 2), !!(updates & 4));
+                wstring status;
+                if (updates & 1) {
+                    if (tools.downloadGoodbyeDPI()) {
+                        status ~= "Обновление GoodbyeDPI загружено и установлено\n"w;
+                    } else {
+                        status ~= "Не удалось обновить GoodbyeDPI"w;
+                    }
+                }
+                if (updates & 2) {
+                    if (tools.downloadZapret()) {
+                        status ~= "Обновление Zapret загружено и установлено\n"w;
+                    } else {
+                        status ~= "Не удалось обновить Zapret"w;
+                    }
+                }
+                if (updates & 4) {
+                    if (updater.downloadUpdate()) {
+                        status ~= "Обновление DieDPI загружено и будет установлено при следующем запуске\n"w;
+                    } else {
+                        status ~= "Не удалось обновить DieDPI"w;
+                    }
+                }
+
+                msgBox(status, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.INFORMATION);
+            } catch (Exception ex) {
+                utils.printFormattedException(ex);
+                msgBox("Неожиданная ошибка при обновлении"w, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.WARNING);
             }
 		}
 

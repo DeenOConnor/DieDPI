@@ -125,7 +125,7 @@ bool stopTool() {
 bool verifyGoodbyeDPI() {
 	debug {
 		import std.path : absolutePath;
-		writefln("Looking for GoodbyeDPI in %s", absolutePath(".\\tools\\zapret"));
+		writefln("Looking for GoodbyeDPI in %s", absolutePath(".\\tools\\goodbyedpi"));
     }
 	if (!exists(".\\tools\\goodbyedpi")) {
 		writeln("GoodbyeDPI is not installed");
@@ -361,7 +361,7 @@ bool autosetupZapret(uint tries = 5, void function() progressTick = { return; })
 	if (!verifyZapret()) {
 		return false;
     }
-	return true;
+	//return true;
 	stopTool();
 
 	auto toolpath = dirEntries(".\\tools\\zapret", SpanMode.shallow).front.name;
@@ -488,7 +488,8 @@ bool autosetupZapret(uint tries = 5, void function() progressTick = { return; })
 // Потом это надо разбить на проверку обновлений и скачивание
 bool downloadGoodbyeDPI(uint repeats = 0) {
 	try {
-		string responseCache = getReleasesJSON(TOOLS["GoodbyeDPI"w]);
+		//string responseCache = getReleasesJSON(TOOLS["GoodbyeDPI"w]);
+        string responseCache = getReleasesJSONCurl(TOOLS["GoodbyeDPI"w]);
 		if (responseCache.length < 1) {
 			return false;
         }
@@ -499,7 +500,7 @@ bool downloadGoodbyeDPI(uint repeats = 0) {
 		if (responseJSON.type() != JSONType.array) {
 			// Получили какое-то фуфло, но тем не менее JSON правильный
 			writefln("(%d) GitHub API returned crap for '%s'", repeats, TOOLS["Zapret"w]);
-			downloadZapret(repeats + 1);
+			downloadGoodbyeDPI(repeats + 1);
 			if (repeats < 5) {
 				// Какой-то	из вызовов завершился успехом
 				return true;
@@ -532,19 +533,20 @@ bool downloadGoodbyeDPI(uint repeats = 0) {
 		if (!exists("tools\\goodbyedpi")) {
 			mkdirRecurse("tools\\goodbyedpi");
         }
-		if (!exists("tools\\goodbyedpi\\" ~ ver)) {
+		if (!exists("tools\\goodbyedpi\\" ~ ver) && !exists("tools\\goodbyedpi\\inst")) {
 			writeln("Installing GoodbyeDPI " ~ ver);
 			auto oldPath = dirEntries(".\\tools\\goodbyedpi", SpanMode.shallow).front.name;
+			downloadAndExtract(zipUrl, ".\\tools\\goodbyedpi", ver);
+			remove("tools\\goodbyedpi\\" ~ ver ~ ".zip");
+
 			// Запишем здесь маску какие файлы нам нужны, чтобы не распаковывать весь архив целиком
 			string[] filesToExtract = [
 				"goodbyedpi.exe",
 				"WinDivert64.sys",
 				"WinDivert.dll"
 			];
-			downloadAndExtract(zipUrl, ".\\tools\\goodbyedpi", ver);
 			
 			// Подразумеваем что всё ок
-			remove("tools\\goodbyedpi\\" ~ ver ~ ".zip");
 			mkdir(".\\tools\\goodbyedpi\\" ~ ver);
 			auto verdirname = dirEntries(".\\tools\\goodbyedpi\\inst", SpanMode.shallow).front.name;
 			// Подразумеваем что я не забыл проверить что этот путь всё ещё актуален
@@ -570,7 +572,8 @@ bool downloadGoodbyeDPI(uint repeats = 0) {
 
 bool downloadZapret(uint repeats = 0) {
 	try {
-		string responseCache = getReleasesJSON(TOOLS["Zapret"w]);
+		//string responseCache = getReleasesJSON(TOOLS["Zapret"w]);
+		string responseCache = getReleasesJSONCurl(TOOLS["Zapret"w]);
 		if (responseCache.length < 1) {
 			return false;
         }
@@ -610,9 +613,12 @@ bool downloadZapret(uint repeats = 0) {
 		if (!exists("tools\\zapret")) {
 			mkdirRecurse("tools\\zapret");
         }
-		if (!exists("tools\\zapret\\" ~ ver)) {
+		if (!exists("tools\\zapret\\" ~ ver) && !exists("tools\\zapret\\inst")) {
 			writeln("Installing Zapret " ~ ver);
 			auto oldPath = dirEntries(".\\tools\\zapret", SpanMode.shallow).front.name;
+			downloadAndExtract(zipUrl, ".\\tools\\zapret", ver);
+			remove("tools\\zapret\\" ~ ver ~ ".zip");
+            
 			// Запишем здесь маску какие файлы нам нужны, чтобы не распаковывать весь архив целиком
 			string[] binsToExtract = [
 				"winws.exe",
@@ -629,18 +635,39 @@ bool downloadZapret(uint repeats = 0) {
 				"quic_initial_www_google_com.bin",
 				"tls_clienthello_www_google_com.bin"
 			];
-			downloadAndExtract(zipUrl, ".\\tools\\zapret", ver);
+			string[] optionalFakes = [
+				// Эти извлекаем если есть, потом надо динамически достраивать список фейков для автонастройки
+				"quic_initial_vk_com.bin",
+				"tls_clienthello_gosuslugi_ru.bin",
+				"tls_clienthello_sberbank_ru.bin",
+				"tls_clienthello_vk_com.bin",
+				"tls_clienthello_vk_com_kyber.bin"
+			];
 			
 			// Подразумеваем что всё ок
-			remove("tools\\zapret\\" ~ ver ~ ".zip");
 			mkdir(".\\tools\\zapret\\" ~ ver);
 			auto verdirname = dirEntries(".\\tools\\zapret\\inst", SpanMode.shallow).front.name;
 			// Подразумеваем что я не забыл проверить что этот путь всё ещё актуален
-			foreach (f; binsToExtract) {
-				rename(verdirname ~ "\\binaries\\win64\\" ~ f, "tools\\zapret\\" ~ ver ~ "\\" ~ f);
+            if (exists(verdirname ~ "\\binaries\\win64") && isDir(verdirname ~ "\\binaries\\win64")) {
+                writefln("dir %s exists", verdirname ~ "\\binaries\\win64");
+                foreach (f; binsToExtract) {
+                    rename(verdirname ~ "\\binaries\\win64\\" ~ f, "tools\\zapret\\" ~ ver ~ "\\" ~ f);
+                }
+            } else if (exists(verdirname ~ "\\binaries\\windows-x86_64\\") && isDir(verdirname ~ "\\binaries\\windows-x86_64\\")) {
+                writefln("dir %s exists", verdirname ~ "\\binaries\\windows-x86_64\\");
+                foreach (f; binsToExtract) {
+                    rename(verdirname ~ "\\binaries\\windows-x86_64\\" ~ f, "tools\\zapret\\" ~ ver ~ "\\" ~ f);
+                }
+            } else {
+                throw new Exception("Windows binaries location changed!");
             }
 			foreach (f; fakesToExtract) {
 				rename(verdirname ~ "\\files\\fake\\" ~ f, "tools\\zapret\\" ~ ver ~ "\\" ~ f);
+            }
+			foreach (f; optionalFakes) {
+                if (exists(verdirname ~ "\\files\\fake\\" ~ f)) {
+                    rename(verdirname ~ "\\files\\fake\\" ~ f, "tools\\zapret\\" ~ ver ~ "\\" ~ f);
+                }
             }
 			// Удалим остатки и старую версию (если была)
 			rmdirRecurse(".\\tools\\zapret\\inst");
