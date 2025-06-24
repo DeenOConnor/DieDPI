@@ -19,7 +19,7 @@ struct LaunchFlags {
 LaunchFlags LFLAGS;
 
 // Должно быть зашито в файл
-const uint APP_VER = 1;
+const uint APP_VER = 2;
 
 struct ConfigV2 {
 	ushort magic = 4517;
