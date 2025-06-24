@@ -98,10 +98,13 @@ bool zapretUpdateNeeded() {
 
 bool isUpdateNeeded(uint timeout = 15) {
     try {
-        auto result = curlOpenPage(to!string(verURL), timeout);
-        writefln("Version check request finished with HTTP code %d", result.code);
-        string page = result.data;
-        if (page.length < 1 || result.code >= 400) {
+        auto result = curl.get(to!string(verURL));//curlOpenPage(to!string(verURL), timeout);
+        //writefln("Version check request finished with HTTP code %d", result.code);
+        string page = result.idup;//result.data;
+        debug {
+            writefln("Version check data according to curl:\n\"%s\"", page);
+        }
+        if (page.length < 1 /*|| result.code >= 400*/) {
             return false;
         }
         return internal__checkUpdatePage(page);
@@ -154,6 +157,9 @@ bool selfUpdateNeeded() {
 
 private bool internal__checkUpdatePage(string page) {
     string buf;
+    debug {
+        writefln("Reading update data from page \"%s\"", page);
+    }
     // Если в ответ пришло что-то капец длинное, то не будем это обрабатывать полностью
     if (page.length > 10) {
         buf = page[0..10];
@@ -162,6 +168,9 @@ private bool internal__checkUpdatePage(string page) {
     }
     uint remoteVer = APP_VER;
 	try {
+        debug {
+            writefln("Cleaning up \"%s\"", buf);
+        }
 		string sbuf = "";
 		// Почистим строку от всякого мусора, который будет вызывать ConvException
 		foreach (c; buf) {
@@ -171,6 +180,9 @@ private bool internal__checkUpdatePage(string page) {
 			sbuf ~= c;
         }
 		//string verText = replaceAll(sbuf, ctrNotNumbers, "");
+        debug {
+            writefln("Parsing remote version from \"%s\"", buf);
+        }
 		remoteVer = to!uint(sbuf);
 	} catch (Exception ex) {
 		printFormattedException(ex);

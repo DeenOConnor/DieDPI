@@ -152,7 +152,12 @@ CurlResult curlOpenPage(string url, string[string] headers, uint timeout = 15) {
         http.connectTimeout(dur!"seconds"(timeout));
         string result = "";
         http.onReceive = delegate size_t(ubyte[] data) {
+            debug {
+                writeln("Got response in curl:");
+                writeln(data);
+            }
             import std.algorithm.comparison;
+            import std.string;
             result = to!string(data[0 .. min(data.length, 10)]);
             return data.length;
         };
