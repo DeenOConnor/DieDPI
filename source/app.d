@@ -128,12 +128,18 @@ void main(string[] args) {
             return;
         }
         
+        debug {
+            writeln("Configuring WinINet");
+        }
         if (!configureInternet()) {
             MessageBoxW(null, "Не удалось настроить соединение с интернетом!\0"w.ptr, "Ошибка!\0"w.ptr, MB_ICONERROR);
             return;
         }
         scope(exit) closeInternet();
         
+        debug {
+            writeln("Checking work dirs");
+        }
         // Подготовим себе нужные папки
         import std.file;
         foreach (dir; ["tools", "update"]) {

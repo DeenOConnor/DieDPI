@@ -50,16 +50,15 @@ auto goodbyeDpiDefaultCommand = [
 auto zapretDefaultCommand = [
 	// Т.к. запускаться zapret будет из заранее неизвестной папки, подставим её на место %DIR%
 	"%DIR%winws.exe",
-	"--wf-tcp=443",
-	"--wf-udp=443,50000-65535",
-	"--dpi-desync=fake,split",
-	"--dpi-desync-repeats=3",
-	"--dpi-desync-fooling=badseq",
+	"--wf-tcp=80,443",
+	"--wf-udp=80,443,50000-65535",
+	"--dpi-desync-fooling=md5sig",
+	"--dpi-desync=fakedsplit",
+	"--dpi-desync-split-pos=method+2",
 	"--dpi-desync-udplen-increment=12",
 	"--dpi-desync-udplen-pattern=0xF00F",
-	"--dpi-desync-any-protocol",
+	"--dpi-desync-any-protocol=1",
 	"--dpi-desync-cutoff=d3",
-	"--dpi-desync-autottl=2",
 	// И тут тоже
 	"--dpi-desync-fake-tls=%DIR%tls_clienthello_www_google_com.bin",
 	"--dpi-desync-fake-quic=%DIR%quic_initial_www_google_com.bin"
@@ -181,6 +180,9 @@ bool startGoodbyeDPI() {
 	try {
 		auto toolpath = dirEntries(".\\tools\\goodbyedpi", SpanMode.shallow).front.name ~ "\\goodbyedpi.exe";
 		auto cmd = toolpath ~ goodbyeDpiDefaultCommand;
+        debug {
+            writefln("Using command \"%s\"", cmd);
+        }
 		auto pid = spawnProcess(cmd, config: Config(Config.Flags.suppressConsole));
 
 		import core.time : dur;
@@ -272,7 +274,7 @@ bool startZapret() {
 	//folder = absolutePath(folder);
 	// Я скачал 100% GC, я буду использовать его на 100%
 	//auto cmd = toolpath ~ zapretDefaultCommand;
-	auto cmd = zapretDefaultCommand.dup;
+    auto cmd = zapretDefaultCommand.dup;
 	foreach (ind; 0 .. cmd.length) {
 		// В параметры где указаны файлы, подставим путь до них
 		if (indexOf(cmd[ind], '%') >= 0) {
@@ -281,6 +283,9 @@ bool startZapret() {
     }
 
 	try {
+        debug {
+            writefln("Using command \"%s\"", cmd);
+        }
 		auto pid = spawnProcess(cmd, config: Config(Config.Flags.suppressConsole)); //, File("stdin.txt", "r"), File("stdout.txt", "w"), File("stderr.txt", "w"));
 
 		import core.time : dur;
@@ -357,7 +362,7 @@ bool autosetupGoodbyeDPI(uint tries = 5, void function() progressTick = { return
 	return true;
 }
 
-bool autosetupZapret(uint tries = 5, void function() progressTick = { return; }) {
+bool autosetupZapret(uint tries = 3, void function() progressTick = { return; }) {
 	if (!verifyZapret()) {
 		return false;
     }
@@ -370,14 +375,12 @@ bool autosetupZapret(uint tries = 5, void function() progressTick = { return; })
 	// Пока что, вроде, все, у кого проверяли, разницы не ощутили
 	auto baseCommand = [
 		toolpath ~ "\\winws.exe",
-		"--wf-tcp=443", // "--wf-tcp=80,443",
-		"--wf-udp=443,50000-65535", // "--wf-udp=80,443,50000-65535",
-		"--dpi-desync-repeats=3",
-		"--dpi-desync-udplen-increment=12",
-		"--dpi-desync-udplen-pattern=0xF00F",
-		"--dpi-desync-fake-quic=" ~ toolpath ~ "\\quic_initial_www_google_com.bin",
-		"--dpi-desync-any-protocol",
-		"--dpi-desync-autottl=2",
+		"--wf-tcp=80,443", // "--wf-tcp=80,443",
+		"--wf-udp=80,443,50000-65535", // "--wf-udp=80,443,50000-65535",
+        "--dpi-desync-split-pos=method+2",
+        "--dpi-desync-udplen-increment=12",
+        "--dpi-desync-udplen-pattern=0xF00F",
+        "--dpi-desync-any-protocol=1",
 		//"--dpi-desync-fake-tls=\"tls_clienthello_www_google_com.bin\"",
 		// Надо попробовать вычислять количество узлов провайдера через tracert и указывать TTL так
 		// "--dpi-desync-ttl=4"
@@ -386,14 +389,18 @@ bool autosetupZapret(uint tries = 5, void function() progressTick = { return; })
 	// Т.к. у zapret нереально много параметров, будем пробовать перебирать режимами
 	auto modes = [
 		1: [
-			"--dpi-desync=": ["fake,split"], // По-моему не получится сюда приткнуть disorder, хотя он работает неплохо
+			"--dpi-desync=": ["fake,split", "fake,split2", "fakedsplit"], // По-моему не получится сюда приткнуть disorder, хотя он работает неплохо
 			"--dpi-desync-fooling=": ["badseq", "md5sig"], // Дискорд лучше всего себя чувствует с badseq, но md5sig тоже помогает
-			"--dpi-desync-cutoff=": ["d3"], // Я уже не помню почему именно 2 и 3
+			"--dpi-desync-cutoff=": ["d2", "d3"], // Я уже не помню почему именно 2 и 3
 			"--dpi-desync-fake-tls=" : ["", toolpath ~ "\\tls_clienthello_www_google_com.bin"] // На МТС поддельный clienthello всё только портит
 		],
 		2: [
-			// На вырост
-			"": [""]
+			"--dpi-desync=": ["fakedsplit", "fake,split2"],
+            "--dpi-desync-fooling=": ["md5sig"],
+			"--dpi-desync-repeats=": ["3", "7", "19"],
+            "--dpi-desync-cutoff=": ["d3"],
+            "--dpi-desync-fake-tls=" : ["", toolpath ~ "\\tls_clienthello_www_google_com.bin"],
+            "--dpi-desync-fake-quic=" : ["", toolpath ~ "\\quic_initial_www_google_com.bin"]
 		]
 	];
 
@@ -477,6 +484,11 @@ bool autosetupZapret(uint tries = 5, void function() progressTick = { return; })
 		}
 		auto resultCommand = baseCommand ~ fixed ~ split(variants[key], " ");
 		writefln("Best result of %d from '%s'", time, resultCommand);
+        foreach (part; resultCommand) {
+            if (indexOf(part, toolpath) > 0) {
+                replace(part, toolpath, "%DIR%");
+            }
+        }
 		// Обновим команду запуска, исключив путь до исполняемого файла
 		zapretDefaultCommand = resultCommand[1..$];
 		ConfigManager.setZapretCommand = resultCommand[1..$];
