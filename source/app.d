@@ -2,6 +2,7 @@ module diedpi;
 
 import std.array;
 import std.conv;
+import std.file : exists;
 import std.process : Pid;
 import std.regex;
 import std.stdio;
@@ -29,6 +30,8 @@ pragma(lib, "advapi32");
 pragma(lib, "user32");
 pragma(lib, "wininet");
 pragma(lib, "wtsapi32");
+
+pragma(lib, "libcurl");
 
 void killTools() {
     WTS_PROCESS_INFOW[] infos;
@@ -100,8 +103,12 @@ void main(string[] args) {
             cfg.updateNeeded = false;
             ConfigManager.setUpdateNeeded(false);
             ConfigManager.writeConfig();
-            updater.onCfgUpdateFlag();
-            return;
+            if (exists("./update/diedpi.exe")) {
+                updater.onCfgUpdateFlag();
+                return;
+            } else {
+                writefln("Files missing, aborting update");
+            }
         }
         
         // Консоль может понадобиться для разбора ошибок
@@ -121,12 +128,18 @@ void main(string[] args) {
             return;
         }
         
+        debug {
+            writeln("Configuring WinINet");
+        }
         if (!configureInternet()) {
             MessageBoxW(null, "Не удалось настроить соединение с интернетом!\0"w.ptr, "Ошибка!\0"w.ptr, MB_ICONERROR);
             return;
         }
         scope(exit) closeInternet();
         
+        debug {
+            writeln("Checking work dirs");
+        }
         // Подготовим себе нужные папки
         import std.file;
         foreach (dir; ["tools", "update"]) {

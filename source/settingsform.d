@@ -3,7 +3,11 @@ module settingsform;
 // Взаимодействуем с настройками только через эти функции
 import cfg;
 import tools;
+import utils;
+import std.array;
+import std.conv;
 import std.stdio : writeln, writefln;
+import std.string : chomp;
 
 import dfl.all;
 import autosetupform;
@@ -26,6 +30,8 @@ class SettingsForm: dfl.form.Form
 	dfl.textbox.TextBox textBox4;
 	dfl.label.Label label12;
 	dfl.textbox.TextBox textBox5;
+	dfl.label.Label label13;
+	dfl.textbox.TextBox textBox6;
 	dfl.button.Button button12;
 	dfl.button.Button button10;
 	
@@ -47,6 +53,12 @@ class SettingsForm: dfl.form.Form
 		button8.text = "Автонастройка";
 		button8.bounds = dfl.all.Rect(8, 8, 347, 63);
 		button8.parent = this;
+
+		button10 = new dfl.button.Button();
+		button10.name = "button10";
+		button10.text = "Остановить и удалить";
+		button10.bounds = dfl.all.Rect(8, 80, 347, 23);
+		button10.parent = this;
 
 		groupBox2 = new dfl.groupbox.GroupBox();
 		groupBox2.name = "groupBox2";
@@ -78,7 +90,7 @@ class SettingsForm: dfl.form.Form
 		groupBox3.enabled = false;
 		groupBox3.visible = false;
 		groupBox3.text = "Расширенные настройки";
-		groupBox3.bounds = dfl.all.Rect(8, 192, 344, 132);
+		groupBox3.bounds = dfl.all.Rect(8, 192, 344, 180);
 		groupBox3.parent = this;
 
 		label11 = new dfl.label.Label();
@@ -107,11 +119,18 @@ class SettingsForm: dfl.form.Form
 		textBox5.bounds = dfl.all.Rect(8, 99, 320, 23);
 		textBox5.parent = groupBox3;
 
-		button10 = new dfl.button.Button();
-		button10.name = "button10";
-		button10.text = "Остановить и удалить";
-		button10.bounds = dfl.all.Rect(8, 80, 347, 23);
-		button10.parent = this;
+		label13 = new dfl.label.Label();
+		label13.name = "label13";
+		label13.text = "Команда запуска обхода:";
+		label13.textAlign = dfl.all.ContentAlignment.MIDDLE_LEFT;
+		label13.bounds = dfl.all.Rect(8, 131, 132, 15);
+		label13.parent = groupBox3;
+
+		textBox6 = new dfl.textbox.TextBox();
+		textBox6.name = "textBox6";
+		textBox6.text = "";
+		textBox6.bounds = dfl.all.Rect(8, 147, 320, 23);
+		textBox6.parent = groupBox3;
 
 		foreach (tool, link; TOOLS) {
 			comboBox4.items.add(tool);
@@ -182,15 +201,35 @@ class SettingsForm: dfl.form.Form
 
 		void settingsForm_Loaded (Object sender, EventArgs evt) {
 			// Для изменения выбора нужно чтобы был хендл
+            auto cfg = ConfigManager.getGlobalConfig();
 			ubyte tool;
 			synchronized {
-				tool = (cast(Config)ConfigManager.getGlobalConfig()).tool;
+				tool = cfg.tool;
 			}
 			comboBox4.selectedIndex(tool);
+            
+            if (tool == 0) {
+                textBox6.text = to!wstring(cfg.goodbyedpiKey);
+            } else {
+                textBox6.text = to!wstring(cfg.zapretCommand.join(" "));
+            }
 		}
 
 		void settingsForm_Closing (Object sender, EventArgs evt) {
 			// Сделаем так, чтобы форма не удалялась, а просто скрывалась
+            try {
+                if (ConfigManager.getGlobalConfig().tool == 0) {
+                    int key = -1;
+                    key = to!int(textBox6.text);
+                    if (key > 0 && key < 10) {
+                        ConfigManager.setGoodbyeDpiKey(key);
+                    }
+                } else {
+                    ConfigManager.setZapretCommand(to!string(textBox6.text).chomp("\0").split(" "));
+                }
+            } catch (Exception ex) {
+                printFormattedException(ex);
+            }
 			ConfigManager.writeConfig();
 			this.hide();
 			if (auto cea = cast(CancelEventArgs) evt) {
