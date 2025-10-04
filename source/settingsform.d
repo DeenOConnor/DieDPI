@@ -211,21 +211,23 @@ class SettingsForm: dfl.form.Form
             if (tool == 0) {
                 textBox6.text = to!wstring(cfg.goodbyedpiKey);
             } else {
-                textBox6.text = to!wstring(cfg.zapretCommand.join(" "));
+                textBox6.text = to!wstring(cfg.zapretCommand.join(" ") ~ '\0');
             }
 		}
 
 		void settingsForm_Closing (Object sender, EventArgs evt) {
 			// Сделаем так, чтобы форма не удалялась, а просто скрывалась
             try {
-                if (ConfigManager.getGlobalConfig().tool == 0) {
-                    int key = -1;
-                    key = to!int(textBox6.text);
-                    if (key > 0 && key < 10) {
-                        ConfigManager.setGoodbyeDpiKey(key);
+                if (checkBox3.checked()) {
+                    if (ConfigManager.getGlobalConfig().tool == 0) {
+                        int key = -1;
+                        key = to!int(textBox6.text);
+                        if (key > 0 && key < 10) {
+                            ConfigManager.setGoodbyeDpiKey(key);
+                        }
+                    } else {
+                        ConfigManager.setZapretCommand(to!string(textBox6.text).chomp("\0").split(" "));
                     }
-                } else {
-                    ConfigManager.setZapretCommand(to!string(textBox6.text).chomp("\0").split(" "));
                 }
             } catch (Exception ex) {
                 printFormattedException(ex);
