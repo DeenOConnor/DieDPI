@@ -44,22 +44,28 @@ auto goodbyeDpiDefaultCommand = [
 	"--dnsv6-port", "1253",
 ];
 
-// Войс в discord не работает, если убрать --dpi-desync-fooling=badseq, --dpi-desync-any-protocol, --dpi-desync-cutoff=d3 или fake-quic и fake-tls
-// На МТС работает без fake-tls, а ещё работает с fooling=md5sig, но у некоторых не работает, а у некоторых наоборот только так и работает
-// Вообще эта штука должна работать +- для всех
+// Насколько возможно универсальная стратегия
+// Для войса в дискорде общая больше не работает, и нужна отдельная, со своими параметрами
 auto zapretDefaultCommand = [
 	// Т.к. запускаться zapret будет из заранее неизвестной папки, подставим её на место %DIR%
 	"%DIR%winws.exe",
 	"--wf-tcp=80,443",
 	"--wf-udp=80,443,50000-65535",
-	"--dpi-desync-fooling=md5sig",
-	"--dpi-desync=fakedsplit",
-	"--dpi-desync-split-pos=method+2",
-	"--dpi-desync-udplen-increment=12",
-	"--dpi-desync-udplen-pattern=0xF00F",
-	"--dpi-desync-any-protocol=1",
-	"--dpi-desync-cutoff=d3",
-	// И тут тоже
+    // Отдельная стратегия, чтобы в дискорде подключалось к RTC
+    "--filter-udp=50000-65535",
+    "--filter-l7=wireguard,discord,stun",
+    "--dpi-desync=fake",
+    "--dpi-desync-repeats=9",
+    // Общая стратегия на всё остальное
+    "--new",
+    "--dpi-desync=syndata,multisplit",
+    "--dpi-desync-any-protocol=1",
+    "--dpi-desync-cutoff=d4",
+    "--dpi-desync-repeats=10",
+    "--dpi-desync-autottl=2",
+    "--dpi-desync-split-pos=10,midsld",
+    "--dpi-desync-fooling=md5sig",
+	// И тут тоже подставим папку
 	"--dpi-desync-fake-tls=%DIR%tls_clienthello_www_google_com.bin",
 	"--dpi-desync-fake-quic=%DIR%quic_initial_www_google_com.bin"
 ];
