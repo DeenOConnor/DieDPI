@@ -73,7 +73,7 @@ class MainForm: Form {
 	
 	
 	private void initializeMyForm() {
-		this.text = "DieDPI v0.1.1";
+		this.text = "DieDPI v0.1.2";
         debug {
             this.text = this.text ~ "-debug";
         }
@@ -179,18 +179,27 @@ class MainForm: Form {
                     updates += updater.goodbyeDPIUpdateNeeded() * 1;
                 } catch (Exception ex) {
                     utils.printFormattedException(ex);
+                    debug {
+                        Application.onThreadException(ex);
+                    }
                     msgBox("Неожиданная ошибка при получении обновлений GoodbyeDPI"w, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.WARNING);
                 }
                 try {
                     updates += updater.zapretUpdateNeeded() * 2;
                 } catch (Exception ex) {
                     utils.printFormattedException(ex);
+                    debug {
+                        Application.onThreadException(ex);
+                    }
                     msgBox("Неожиданная ошибка при получении обновлений Zapret"w, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.WARNING);
                 }
                 try {
                     updates += updater.selfUpdateNeeded() * 4;
                 } catch (Exception ex) {
                     utils.printFormattedException(ex);
+                    debug {
+                        Application.onThreadException(ex);
+                    }
                     msgBox("Неожиданная ошибка при получении собственных обновлений"w, "Обновление"w, MsgBoxButtons.OK, MsgBoxIcon.WARNING);
                 }
 

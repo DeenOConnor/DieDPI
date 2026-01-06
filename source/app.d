@@ -31,7 +31,10 @@ pragma(lib, "user32");
 pragma(lib, "wininet");
 pragma(lib, "wtsapi32");
 
-pragma(lib, "libcurl");
+// Для корректной линковки libcurl
+pragma(lib, "crypt32");
+pragma(lib, "iphlpapi");
+pragma(lib, "secur32");
 
 void killTools() {
     WTS_PROCESS_INFOW[] infos;
