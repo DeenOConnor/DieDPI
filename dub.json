@@ -14,6 +14,6 @@
     "sourceFiles": ["lib/*.lib"],
 	"mainSourceFile": "source/app.d",
 	"importPaths": [],
-	"dflags": ["-m64"],
-	"lflags": ["/MANIFEST", "/MANIFESTUAC:level='requireAdministrator'"]
+	"arch": ["x86_64"],
+	"lflags": ["/MANIFEST", "/MANIFESTUAC:level='requireAdministrator'", "/LIBPATH:lib", "/WHOLEARCHIVE:libcurl_static"]
 }
