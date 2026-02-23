@@ -36,6 +36,14 @@ pragma(lib, "crypt32");
 pragma(lib, "iphlpapi");
 pragma(lib, "secur32");
 
+import std.traits;
+import etc.c.curl;
+static foreach (func; __traits(allMembers, etc.c.curl)) {
+    static if (isFunction!(__traits(getMember, etc.c.curl, func))) {
+        pragma(linkerDirective, "/EXPORT:" ~ func);
+    }
+}
+
 void killTools() {
     WTS_PROCESS_INFOW[] infos;
     WTS_PROCESS_INFOW* infosptr;
@@ -61,6 +69,18 @@ void killTools() {
 
 void main(string[] args) {
     try {
+        
+        debug {
+            auto res = GetProcAddress(GetModuleHandle(null), "curl_global_init");
+            writeln(res);
+            if (res is null) {
+                writeln("No curl_global_init found");
+            } else {
+                writeln("Found curl_global_init");
+            }
+        }
+    
+    
         import std.file : thisExePath, chdir, getcwd;
         import std.path : dirName;
         auto thispath = dirName(thisExePath());
@@ -115,7 +135,7 @@ void main(string[] args) {
         }
         
         // Консоль может понадобиться для разбора ошибок
-        if(!LFLAGS.keepConsole || CONFIG.autostart) {
+        if(!LFLAGS.keepConsole) {
             FreeConsole();
         }
         try {
