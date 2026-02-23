@@ -187,6 +187,10 @@ private bool internal__checkUpdatePage(string page) {
 	} catch (Exception ex) {
 		printFormattedException(ex);
     }
+    debug {
+        // Не качаем обновления в тестовых сборках
+        return false;
+    }
 	// Подразумеваем не только что версия может расти, но и что может быть откат
 	return APP_VER != remoteVer;
 }
