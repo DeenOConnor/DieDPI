@@ -56,8 +56,6 @@ auto zapretDefaultCommand = [
     "--filter-l7=wireguard,discord,stun",
     "--dpi-desync=fake,hostfakesplit",
     "--dpi-desync-repeats=9",
-    "--dpi-desync-hostfakesplit-mod=host=vk.com,altorder=1",
-    "--dpi-desync-fake-tls-mod=rnd,sni=vk.com",
 	"--dpi-desync-fake-tls=%DIR%tls_clienthello_www_google_com.bin",
 	"--dpi-desync-fake-quic=%DIR%quic_initial_www_google_com.bin",
 	"--dpi-desync-fake-stun=%DIR%quic_initial_www_google_com.bin",
@@ -67,9 +65,10 @@ auto zapretDefaultCommand = [
     "--dpi-desync-any-protocol=1",
     "--dpi-desync-cutoff=d4",
     "--dpi-desync-repeats=10",
-    "--dpi-desync-autottl=2",
     "--dpi-desync-split-pos=10,midsld",
     "--dpi-desync-fooling=md5sig",
+    "--dpi-desync-fake-tls-mod=rnd,sni=vk.com",
+    "--dpi-desync-hostfakesplit-mod=host=vk.com,altorder=1",
 	// И тут тоже подставим папку
 	"--dpi-desync-fake-tls=%DIR%tls_clienthello_www_google_com.bin",
 	"--dpi-desync-fake-quic=%DIR%quic_initial_www_google_com.bin"
