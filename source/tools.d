@@ -67,8 +67,8 @@ auto zapretDefaultCommand = [
     "--dpi-desync-repeats=10",
     "--dpi-desync-split-pos=10,midsld",
     "--dpi-desync-fooling=md5sig",
-    "--dpi-desync-fake-tls-mod=rnd,sni=vk.com",
-    "--dpi-desync-hostfakesplit-mod=host=vk.com,altorder=1",
+    "--dpi-desync-fake-tls-mod=rnd,sni=google.com",
+    "--dpi-desync-hostfakesplit-mod=host=google.com,altorder=1",
 	// И тут тоже подставим папку
 	"--dpi-desync-fake-tls=%DIR%tls_clienthello_www_google_com.bin",
 	"--dpi-desync-fake-quic=%DIR%quic_initial_www_google_com.bin"
