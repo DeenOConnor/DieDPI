@@ -73,7 +73,7 @@ class MainForm: Form {
 	
 	
 	private void initializeMyForm() {
-		this.text = "DieDPI v0.1.4";
+		this.text = "DieDPI v0.1.5";
         debug {
             this.text = this.text ~ "-debug";
         }
