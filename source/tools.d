@@ -49,29 +49,31 @@ auto goodbyeDpiDefaultCommand = [
 auto zapretDefaultCommand = [
 	// Т.к. запускаться zapret будет из заранее неизвестной папки, подставим её на место %DIR%
 	"%DIR%winws.exe",
-	"--wf-tcp=80,443",
-	"--wf-udp=80,443,50000-65535",
+	"--wf-tcp=80,443,2053,2083,2087,2096,8443",
+	"--wf-udp=80,443,19250-19350,50000-65535",
     // Отдельная стратегия, чтобы в дискорде подключалось к RTC
-    "--filter-udp=50000-65535",
+    "--filter-udp=19250-19350,50000-65535",
     "--filter-l7=wireguard,discord,stun",
-    "--dpi-desync=fake,hostfakesplit",
-    "--dpi-desync-repeats=9",
-	"--dpi-desync-fake-tls=%DIR%tls_clienthello_www_google_com.bin",
-	"--dpi-desync-fake-quic=%DIR%quic_initial_www_google_com.bin",
-	"--dpi-desync-fake-stun=%DIR%quic_initial_www_google_com.bin",
+    "--dpi-desync=fake",
+    "--dpi-desync-repeats=4",
+	"--dpi-desync-fake-quic=%DIR%quic_initial_vk_com.bin",
+	"--dpi-desync-fake-discord=%DIR%quic_initial_vk_com.bin",
+	"--dpi-desync-fake-stun=%DIR%stun.bin",
     // Общая стратегия на всё остальное
     "--new",
-    "--dpi-desync=synack,hostfakesplit",
+    "--dpi-desync=synack,rstack,hostfakesplit",
     "--dpi-desync-any-protocol=1",
     "--dpi-desync-cutoff=d4",
     "--dpi-desync-repeats=10",
     "--dpi-desync-split-pos=10,midsld",
+    "--dpi-desync-split-seqovl=19",
+    "--dpi-desync-split-seqovl-pattern=0xCCA30981",
     "--dpi-desync-fooling=md5sig",
-    "--dpi-desync-fake-tls-mod=rnd,sni=google.com",
-    "--dpi-desync-hostfakesplit-mod=host=google.com,altorder=1",
+    "--dpi-desync-fake-tls-mod=rnd,dupsid,sni=vk.com",
+    "--dpi-desync-hostfakesplit-mod=host=vk.com,altorder=1",
 	// И тут тоже подставим папку
-	"--dpi-desync-fake-tls=%DIR%tls_clienthello_www_google_com.bin",
-	"--dpi-desync-fake-quic=%DIR%quic_initial_www_google_com.bin"
+	"--dpi-desync-fake-tls=%DIR%tls_clienthello_vk_com.bin",
+	"--dpi-desync-fake-quic=%DIR%quic_initial_vk_com.bin"
 ];
 
 private Pid synchronizedToolAccessor(bool op = false, Pid newVal = null) {
@@ -234,7 +236,10 @@ bool verifyZapret() {
 		"WinDivert.dll",
 		"cygwin1.dll",
 		"quic_initial_www_google_com.bin",
-		"tls_clienthello_www_google_com.bin"
+		"tls_clienthello_www_google_com.bin",
+		"quic_initial_vk_com.dll",
+		"tls_clienthello_vk_com.bin",
+		"stun.bin"
 	];
 	foreach (reqFile; reqFiles) {
 		if (
@@ -395,6 +400,10 @@ bool autosetupZapret(uint tries = 3, void function() progressTick = { return; })
 		// Надо попробовать вычислять количество узлов провайдера через tracert и указывать TTL так
 		// "--dpi-desync-ttl=4"
 	];
+    
+    // Вот тут где-то нужно собирать перечень допустимых файлов (из имеющихся) для перебора фейковых clienthello, QUIC и пр.
+    // Потом подставлять уже именно их, чтобы была возможность подбрасывать кастомные после установки
+    // Возможно, в отдельную папку рядом с основными
 
 	// Т.к. у zapret нереально много параметров, будем пробовать перебирать режимами
 	auto modes = [
@@ -404,14 +413,34 @@ bool autosetupZapret(uint tries = 3, void function() progressTick = { return; })
 			"--dpi-desync-cutoff=": ["d2", "d3"], // Я уже не помню почему именно 2 и 3
 			"--dpi-desync-fake-tls=" : ["", toolpath ~ "\\tls_clienthello_www_google_com.bin"] // На МТС поддельный clienthello всё только портит
 		],
-		2: [
+		2: [ // Этот вариант хорошо показывал себя на московских провайдерах в 2025-2026
 			"--dpi-desync=": ["fakedsplit", "fake,split2"],
             "--dpi-desync-fooling=": ["md5sig"],
 			"--dpi-desync-repeats=": ["3", "7", "19"],
             "--dpi-desync-cutoff=": ["d3"],
             "--dpi-desync-fake-tls=" : ["", toolpath ~ "\\tls_clienthello_www_google_com.bin"],
             "--dpi-desync-fake-quic=" : ["", toolpath ~ "\\quic_initial_www_google_com.bin"]
-		]
+		],
+        3: [ // Хорошо работавшая в прошлом стратегия, возможно, когда-то сработает ещё
+            "--filter-udp=": ["50000-65535"],
+            "--filter-l7=": ["wireguard,discord,stun"],
+            "--dpi-desync=": ["fake,hostfakesplit"],
+            "--dpi-desync-repeats=": ["9"],
+            "--dpi-desync-fake-tls=": [toolpath ~ "\\tls_clienthello_www_google_com.bin"],
+            "--dpi-desync-fake-quic=": [toolpath ~ "\\quic_initial_www_google_com.bin"],
+            "--dpi-desync-fake-stun=": [toolpath ~ "\\quic_initial_www_google_com.bin"],
+            "--new": [""],
+            "--dpi-desync=": ["synack,hostfakesplit"],
+            "--dpi-desync-any-protocol=": ["1"],
+            "--dpi-desync-cutoff=": ["d4"],
+            "--dpi-desync-repeats=": ["10"],
+            "--dpi-desync-split-pos=": ["10,midsld"],
+            "--dpi-desync-fooling=": ["md5sig"],
+            "--dpi-desync-fake-tls-mod=": ["rnd,sni=google.com"],
+            "--dpi-desync-hostfakesplit-mod=": ["host=google.com,altorder=1"],
+            "--dpi-desync-fake-tls=": [toolpath ~ "\\tls_clienthello_www_google_com.bin"],
+            "--dpi-desync-fake-quic=": [toolpath ~ "\\quic_initial_www_google_com.bin"]
+        ]
 	];
 
 
@@ -653,17 +682,23 @@ bool downloadZapret(uint repeats = 0) {
 				"mdig.exe"
 			];
 			string[] fakesToExtract = [
-				// Пока пользуемся только двумя, значит берём их и всё
+				// Все жизненно необходимые подставные данные
 				"quic_initial_www_google_com.bin",
-				"tls_clienthello_www_google_com.bin"
+				"quic_initial_vk_com.bin",
+				"tls_clienthello_www_google_com.bin",
+				"tls_clienthello_vk_com.bin",
+                "stun.bin"
 			];
 			string[] optionalFakes = [
-				// Эти извлекаем если есть, потом надо динамически достраивать список фейков для автонастройки
-				"quic_initial_vk_com.bin",
+				// Все опциональные подставные данные, которые я ни в коем случае не забыл учесть при автонастройке
+                "discord-ip-discovery-without-port.bin",
+                "discord-ip-discovery-with-port.bin",
+                "dtls_clienthello_w3_org.bin",
+                "isakmp_initiator_request.bin",
 				"tls_clienthello_gosuslugi_ru.bin",
 				"tls_clienthello_sberbank_ru.bin",
-				"tls_clienthello_vk_com.bin",
-				"tls_clienthello_vk_com_kyber.bin"
+				"tls_clienthello_vk_com_kyber.bin",
+                "quic_short_header.bin"
 			];
 			
 			// Подразумеваем что всё ок
