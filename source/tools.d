@@ -539,7 +539,6 @@ bool autosetupZapret(uint tries = 3, void function() progressTick = { return; })
 // Потом это надо разбить на проверку обновлений и скачивание
 bool downloadGoodbyeDPI(uint repeats = 0) {
 	try {
-		//string responseCache = getReleasesJSON(TOOLS["GoodbyeDPI"w]);
         string responseCache = getReleasesJSONCurl(TOOLS["GoodbyeDPI"w]);
 		if (responseCache.length < 1) {
 			return false;
@@ -587,7 +586,7 @@ bool downloadGoodbyeDPI(uint repeats = 0) {
 		if (!exists("tools\\goodbyedpi\\" ~ ver) && !exists("tools\\goodbyedpi\\inst")) {
 			writeln("Installing GoodbyeDPI " ~ ver);
 			auto oldPath = dirEntries(".\\tools\\goodbyedpi", SpanMode.shallow).front.name;
-			downloadAndExtractCurl(zipUrl, ".\\tools\\goodbyedpi", ver);
+			downloadAndExtract(zipUrl, ".\\tools\\goodbyedpi", ver);
 			remove("tools\\goodbyedpi\\" ~ ver ~ ".zip");
 
 			// Запишем здесь маску какие файлы нам нужны, чтобы не распаковывать весь архив целиком
@@ -623,7 +622,6 @@ bool downloadGoodbyeDPI(uint repeats = 0) {
 
 bool downloadZapret(uint repeats = 0) {
 	try {
-		//string responseCache = getReleasesJSON(TOOLS["Zapret"w]);
 		string responseCache = getReleasesJSONCurl(TOOLS["Zapret"w]);
 		if (responseCache.length < 1) {
 			return false;
@@ -667,7 +665,7 @@ bool downloadZapret(uint repeats = 0) {
 		if (!exists("tools\\zapret\\" ~ ver) && !exists("tools\\zapret\\inst")) {
 			writeln("Installing Zapret " ~ ver);
 			auto oldPath = dirEntries(".\\tools\\zapret", SpanMode.shallow).front.name;
-			downloadAndExtractCurl(zipUrl, ".\\tools\\zapret", ver);
+			downloadAndExtract(zipUrl, ".\\tools\\zapret", ver);
 			remove("tools\\zapret\\" ~ ver ~ ".zip");
             
 			// Запишем здесь маску какие файлы нам нужны, чтобы не распаковывать весь архив целиком

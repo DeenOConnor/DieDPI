@@ -75,6 +75,10 @@ void main(string[] args) {
             writeln(res);
             if (res is null) {
                 writeln("No curl_global_init found");
+                // Если не получилось загрузить libcurl - попробуем откатиться на wininet
+                static import network;
+                network.getReleasesJSON = &network.getReleasesJSONWin;
+                network.downloadAndExtract = &network.downloadAndExtractWin;
             } else {
                 writeln("Found curl_global_init");
             }

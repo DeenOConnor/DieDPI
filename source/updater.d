@@ -220,14 +220,14 @@ bool downloadUpdate(bool force = false) {
 				zipUrl = to!wstring(entry["browser_download_url"].get!string);
             }
         }
-		if (zipUrl == ""w) {
+		if (zipUrl.length < 1) {
 			writeln("Could not find update.zip in release " ~ ver);
 			return false;
         }
 		if (!exists("update\\" ~ ver ~ ".zip")) {
 			writeln("Downloading DieDPI update");
 			try {
-				downloadAndExtractCurl(zipUrl, ".\\update", ver);
+				downloadAndExtract(zipUrl, ".\\update", ver);
             } catch (Exception ex) {
 				import dfl.messagebox;
 				printFormattedException(ex);
