@@ -182,6 +182,10 @@ string getReleasesJSONCurl(string url) {
     return curl.get(url).idup;
 }
 
+void downloadAndExtractCurl(wstring url, string path, string name) {
+    downloadAndExtractCurl(to!string(url), path, name)
+}
+
 void downloadAndExtractCurl(string url, string path, string name) {
     writefln("Requested download and extract %s to %s from %s", name, path, url);
     if (!exists(path ~ "\\" ~ name ~ ".zip")) {

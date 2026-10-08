@@ -587,7 +587,7 @@ bool downloadGoodbyeDPI(uint repeats = 0) {
 		if (!exists("tools\\goodbyedpi\\" ~ ver) && !exists("tools\\goodbyedpi\\inst")) {
 			writeln("Installing GoodbyeDPI " ~ ver);
 			auto oldPath = dirEntries(".\\tools\\goodbyedpi", SpanMode.shallow).front.name;
-			downloadAndExtract(zipUrl, ".\\tools\\goodbyedpi", ver);
+			downloadAndExtractCurl(zipUrl, ".\\tools\\goodbyedpi", ver);
 			remove("tools\\goodbyedpi\\" ~ ver ~ ".zip");
 
 			// Запишем здесь маску какие файлы нам нужны, чтобы не распаковывать весь архив целиком
@@ -667,7 +667,7 @@ bool downloadZapret(uint repeats = 0) {
 		if (!exists("tools\\zapret\\" ~ ver) && !exists("tools\\zapret\\inst")) {
 			writeln("Installing Zapret " ~ ver);
 			auto oldPath = dirEntries(".\\tools\\zapret", SpanMode.shallow).front.name;
-			downloadAndExtract(zipUrl, ".\\tools\\zapret", ver);
+			downloadAndExtractCurl(zipUrl, ".\\tools\\zapret", ver);
 			remove("tools\\zapret\\" ~ ver ~ ".zip");
             
 			// Запишем здесь маску какие файлы нам нужны, чтобы не распаковывать весь архив целиком

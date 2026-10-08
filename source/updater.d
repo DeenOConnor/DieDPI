@@ -201,7 +201,7 @@ bool downloadUpdate(bool force = false) {
 	import std.string;
 
 	try {
-		string responseCache = getReleasesJSON(relURL);
+		string responseCache = getReleasesJSONCurl(relURL);
 		if (responseCache.length < 1) {
 			return false;
         }
@@ -227,7 +227,7 @@ bool downloadUpdate(bool force = false) {
 		if (!exists("update\\" ~ ver ~ ".zip")) {
 			writeln("Downloading DieDPI update");
 			try {
-				downloadAndExtract(zipUrl, ".\\update", ver);
+				downloadAndExtractCurl(zipUrl, ".\\update", ver);
             } catch (Exception ex) {
 				import dfl.messagebox;
 				printFormattedException(ex);
