@@ -109,7 +109,7 @@ void closeInternet() {
 }
 
 void* openPage(wstring url, wstring headers) {
-    url ~= '\0'w;
+    url ~= '\0';
 	auto req = InternetOpenUrlW(
 		internet,
 		url.dup.ptr,

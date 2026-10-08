@@ -237,7 +237,7 @@ bool verifyZapret() {
 		"cygwin1.dll",
 		"quic_initial_www_google_com.bin",
 		"tls_clienthello_www_google_com.bin",
-		"quic_initial_vk_com.dll",
+		"quic_initial_vk_com.bin",
 		"tls_clienthello_vk_com.bin",
 		"stun.bin"
 	];
