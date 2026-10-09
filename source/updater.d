@@ -201,7 +201,7 @@ bool downloadUpdate(bool force = false) {
 	import std.string;
 
 	try {
-		string responseCache = getReleasesJSONCurl(relURL);
+		string responseCache = getReleasesJSON(relURL);
 		if (responseCache.length < 1) {
 			return false;
         }

@@ -539,7 +539,7 @@ bool autosetupZapret(uint tries = 3, void function() progressTick = { return; })
 // Потом это надо разбить на проверку обновлений и скачивание
 bool downloadGoodbyeDPI(uint repeats = 0) {
 	try {
-        string responseCache = getReleasesJSONCurl(TOOLS["GoodbyeDPI"w]);
+        string responseCache = getReleasesJSON(TOOLS["GoodbyeDPI"w]);
 		if (responseCache.length < 1) {
 			return false;
         }
@@ -622,7 +622,7 @@ bool downloadGoodbyeDPI(uint repeats = 0) {
 
 bool downloadZapret(uint repeats = 0) {
 	try {
-		string responseCache = getReleasesJSONCurl(TOOLS["Zapret"w]);
+		string responseCache = getReleasesJSON(TOOLS["Zapret"w]);
 		if (responseCache.length < 1) {
 			return false;
         }
