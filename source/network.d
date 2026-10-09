@@ -109,6 +109,7 @@ void closeInternet() {
 }
 
 void* openPage(wstring url, wstring headers) {
+    writefln("[WinInet] Opening '%s'", url);
     url ~= '\0';
 	auto req = InternetOpenUrlW(
 		internet,
@@ -144,7 +145,7 @@ CurlResult curlOpenPage(string url, string[string] headers, uint timeout = 15) {
     CurlResult res;
     
     try {
-        writefln("Attempting to open \"%s\"", url);
+        writefln("[libcurl] Attempting to open \"%s\"", url);
         if ("User-Agent" !in headers) {
             headers["User-Agent"] = useragentCurl;
         }
@@ -178,12 +179,12 @@ CurlResult curlOpenPage(string url, string[string] headers, uint timeout = 15) {
 }
 
 string getReleasesJSONCurl(wstring url) {
-    writefln("Requested releases JSON from %s", url);
+    writefln("[libcurl] Requested releases JSON from %s", url);
     return curl.get(to!string(url)).idup;
 }
 
 void downloadAndExtractCurl(wstring url, string path, string name) {
-    writefln("Requested download and extract %s to %s from %s", name, path, url);
+    writefln("[libcurl] Requested download and extract %s to %s from %s", name, path, url);
     if (!exists(path ~ "\\" ~ name ~ ".zip")) {
 		if (!exists(path)) {
 			// Создадим папку, если такой ещё нет
@@ -198,7 +199,7 @@ void downloadAndExtractCurl(wstring url, string path, string name) {
 }
 
 string getReleasesJSONWin(wstring url) {
-	writefln("Fetching releases from '%s'", url);
+	writefln("[WinInet] Fetching releases from '%s'", url);
 
 	auto req = openPage(url, apiHeaders);
 	if (req is null) {
@@ -245,6 +246,7 @@ string getReleasesJSONWin(wstring url) {
 void downloadAndExtractWin(wstring url, string path, string name) {
 	import std.file;
 	import std.stdio;
+	writefln("[WinInet] Downloading and extracting from '%s'", url);
 
 	// Проверим надо ли качать файл
 	if (!exists(path ~ "\\" ~ name ~ ".zip")) {
