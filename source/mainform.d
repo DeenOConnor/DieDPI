@@ -214,19 +214,19 @@ class MainForm: Form {
                     if (tools.downloadGoodbyeDPI()) {
                         status ~= "Обновление GoodbyeDPI загружено и установлено\n"w;
                     } else {
-                        status ~= "Не удалось обновить GoodbyeDPI"w;
+                        status ~= "Не удалось обновить GoodbyeDPI\n"w;
                     }
                 }
                 if (updates & 2) {
                     if (tools.downloadZapret()) {
                         status ~= "Обновление Zapret загружено и установлено\n"w;
                     } else {
-                        status ~= "Не удалось обновить Zapret"w;
+                        status ~= "Не удалось обновить Zapret\n"w;
                     }
                 }
                 if (updates & 4) {
                     if (updater.downloadUpdate()) {
-                        status ~= "Обновление DieDPI загружено и будет установлено при следующем запуске\n"w;
+                        status ~= "Обновление DieDPI загружено и будет установлено при следующем запуске"w;
                     } else {
                         status ~= "Не удалось обновить DieDPI"w;
                     }
