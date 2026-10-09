@@ -201,7 +201,7 @@ bool downloadUpdate(bool force = false) {
 	import std.string;
 
 	try {
-		string responseCache = getReleasesJSON(relURL);
+		string responseCache = getReleasesJSONCurl(relURL);
 		if (responseCache.length < 1) {
 			return false;
         }
@@ -220,7 +220,7 @@ bool downloadUpdate(bool force = false) {
 				zipUrl = to!wstring(entry["browser_download_url"].get!string);
             }
         }
-		if (zipUrl == ""w) {
+		if (zipUrl.length < 1) {
 			writeln("Could not find update.zip in release " ~ ver);
 			return false;
         }

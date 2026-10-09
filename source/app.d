@@ -69,15 +69,17 @@ void killTools() {
 
 void main(string[] args) {
     try {
-        
-        debug {
-            auto res = GetProcAddress(GetModuleHandle(null), "curl_global_init");
-            writeln(res);
-            if (res is null) {
-                writeln("No curl_global_init found");
-            } else {
-                writeln("Found curl_global_init");
-            }
+
+        auto res = GetProcAddress(GetModuleHandle(null), "curl_global_init");
+        writeln(res);
+        if (res is null) {
+            writeln("No curl_global_init found");
+            // Если не получилось загрузить libcurl - попробуем откатиться на wininet
+            static import network;
+            network.getReleasesJSON = &network.getReleasesJSONWin;
+            network.downloadAndExtract = &network.downloadAndExtractWin;
+        } else {
+            writeln("Found curl_global_init");
         }
     
     
